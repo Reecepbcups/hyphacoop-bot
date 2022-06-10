@@ -20,10 +20,7 @@ from os.path import dirname as parentDir
 
 from utils import unecode_text, getForumTopicList, getForumUserMap
 
-# Don't actually tweet, just print
-IN_PRODUCTION = True 
 
-USE_PYTHON_RUNNABLE = False # only run 1 time, turn this on for docker
 
 GOVERNANCE_PROPOSALS_API = 'https://lcd-cosmoshub.blockapsis.com/cosmos/gov/v1beta1/proposals'
 # GOVERNANCE_PROPOSALS_API = 'https://lcd-juno.itastakers.com/cosmos/gov/v1beta1/proposals' # test juno chain
@@ -36,6 +33,19 @@ FORUM_API = "https://forum.cosmos.network/c/hub-proposals/25.json" # governance 
 SECRETS_FILE = parentDir(parentDir(__file__)) + "/secrets.json"
 FILENAME = parentDir(parentDir(__file__)) + "/storage.json"
 # print(SECRETS_FILE, '\n', FILENAME)
+
+def main():
+    if USE_RUNNABLE_FOR_DOCKER:
+        print("Using a runnable so docker will stay alive")
+        while True:
+            checkForNewOnChainProposals()
+            runForumCheck(ignorePinned=False)
+            time.sleep(60)
+
+    print("One time run")
+    checkForNewOnChainProposals()
+    runForumCheck(ignorePinned=False)
+
 
 def load_proposals_from_file() -> dict:
     global proposals
@@ -136,7 +146,7 @@ def getAllOnChainProposals() -> list:
     return props
 
 
-def checkIfNewestProposalIDIsGreaterThanLastTweet() -> None:
+def checkForNewOnChainProposals() -> None:
     # get our last tweeted proposal ID (that was in voting period), if it exists
     # if not, 0 is the value so we search through all proposals
     lastPropID = proposals.get("chain", 0)
@@ -166,14 +176,6 @@ def checkIfNewestProposalIDIsGreaterThanLastTweet() -> None:
             title=current_prop_title,
             location="chain"
         )
-
-def runChainCheck():   
-    print("Running checks for both forum & chain...") 
-    try:
-        checkIfNewestProposalIDIsGreaterThanLastTweet()
-    except Exception as e:
-        print(f"{e}")
-    print(f"Cosmos chain checked {time.ctime()}")
     
 ############################################################################################
 
@@ -199,7 +201,8 @@ if __name__ == "__main__":
 
     load_proposals_from_file()
 
-    # runForum(ignorePinned=False) # runs forum
-    # runChainCheck() # runs chain check for proposals
+    # Don't actually tweet, just print
+    IN_PRODUCTION = bool(getValue("IN_PRODUCTION", config))
+    USE_RUNNABLE_FOR_DOCKER = bool(getValue("USE_RUNNABLE_FOR_DOCKER", config))
 
-    # add logic here for scheduler or not.
+    main()
