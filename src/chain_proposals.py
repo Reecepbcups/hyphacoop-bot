@@ -36,10 +36,6 @@ SECRETS_FILE = parentDir(parentDir(__file__)) + "/secrets.json"
 FILENAME = parentDir(parentDir(__file__)) + "/storage.json"
 # print(SECRETS_FILE, '\n', FILENAME)
 
-class Location(Enum):
-    CHAIN = "chain"
-    FORUM = "forum"
-
 proposals = {
     "forum": 0, # Forum proposal IDs
     "chain": 0 # on chain proposals IDs
@@ -52,7 +48,7 @@ def load_proposals_from_file() -> dict:
 def save_proposals() -> None:
     with open(FILENAME, 'w') as f:
         json.dump(proposals, f)
-def update_proposal_value(location: Enum, newPropNumber):
+def update_proposal_value(location: str, newPropNumber):
     global proposals
     proposals[location] = newPropNumber
     save_proposals()
@@ -92,18 +88,18 @@ def run(ignorePinned : bool = True, onlyPrintLastCall : bool = True):
         _id = prop['id']
         if ignorePinned and prop['pinned'] == True: continue
 
-        if _id <= proposals[Location.FORUM.value]:
-            # print(_id, chainID, "Already did this")
+        if _id <= proposals["forum"]: # print(_id, chainID, "Already did this")
             continue
-
 
         tags = list(prop['tags'])
         if onlyPrintLastCall and 'last-call' not in tags:
-            continue # we skip if it isn't a last call
+            continue # we skip if it isn't a last-call before it goes up on chain
     
         title = unecode_text(prop['title'])
         createTime = prop['created_at']
         originalPoster = ""
+
+        # Add regex profanity check?
     
         for poster in prop['posters']:
             desc = str(poster['description'])
@@ -117,22 +113,27 @@ def run(ignorePinned : bool = True, onlyPrintLastCall : bool = True):
                 if len(name) > 0:
                     originalPoster += f" ({name})"
             
-        proposals[Location.FORUM.value] = _id
+        proposals["forum"] = _id
         print(_id, createTime, title, originalPoster, tags)
-        # send announcement here
+        
+        post_tweet(
+            ID=_id,
+            title=title,
+            location="forum"
+        )
 
 
 ############################################################################################
 
 
-
-
-
-
-
-def post_update(propID, title, description=""):
-    message = f"Cosmos Proposal #{propID} | VOTING | {title} | {EXPLORER}/{propID} | @cosmos"
-    print(f"{message=}")
+# have this different for on chain VS in forum
+def post_tweet(ID, title, location="chain"):
+    if location == "chain":
+        # ID here is the actual proposal ID (ex #71)
+        message = f"Cosmos Proposal #{ID} | VOTE NOW | {title} | {EXPLORER}/{ID} | @cosmos"
+    else:
+        # ID here is the forum ID, > 6700
+        message = f"Cosmos Forum Proposal (last-call) | {title} | {FORUM_URL.format(ID=ID)} | @cosmos"
 
     if IN_PRODUCTION:
         try:
@@ -144,10 +145,12 @@ def post_update(propID, title, description=""):
         print(f"WOULD TWEET: {message}   - {IN_PRODUCTION=}")
 
 
-def getAllProposals(ticker) -> list:
+
+
+
+def getAllProposals() -> list:
     # Makes request to API & gets JSON reply in form of a list
     props = []
-    
     try:
         response = requests.get(GOVERNANCE_PROPOSALS_API, headers={
             'accept': 'application/json', 
@@ -156,42 +159,43 @@ def getAllProposals(ticker) -> list:
         # print(response.url)
         props = response.json()['proposals']
     except Exception as e:
-        print(f"Issue with request to {ticker}: {e}")
+        print(f"Issue with request to {GOVERNANCE_PROPOSALS_API}: {e}")
     return props
 
 
-def checkIfNewestProposalIDIsGreaterThanLastTweet(ticker):
+def checkIfNewestProposalIDIsGreaterThanLastTweet():
     # get our last tweeted proposal ID (that was in voting period), if it exists
     # if not, 0 is the value so we search through all proposals
     lastPropID = 0
-    if ticker in proposals:
-        lastPropID = int(proposals[ticker])
 
     # gets JSON list of all proposals
-    props = getAllProposals(ticker)
+    props = getAllProposals()
     if len(props) == 0:
-        return
+        return # This should never happen with cosmos
 
     # loop through out last stored voted prop ID & newest proposal ID
     for prop in props:
         current_prop_id = int(prop['proposal_id'])
+        current_prop_title = prop['content']['title']
 
         # If this is a new proposal which is not the last one we tweeted for
-        if current_prop_id > lastPropID:   
-            print(f"Newest prop ID {current_prop_id} is greater than last prop ID {lastPropID}")
-            
-            if IS_FIRST_RUN or IN_PRODUCTION:      
-                # save to proposals dict & to file (so we don't post again), unless its the first run                                 
-                update_proposal_value(ticker, current_prop_id)
-            else:
-                print("Not in production, not writing to file.")
+        if current_prop_id <= lastPropID:
+            continue
 
-            post_update(
-                ticker=ticker,
-                propID=current_prop_id, 
-                title=prop['content']['title'], 
-                description=prop['content']['description'], # for discord embeds
-            )
+        print(f"Newest prop ID {current_prop_id} is greater than last prop ID {lastPropID}")
+        
+        if IS_FIRST_RUN or IN_PRODUCTION:      
+            # save to proposals dict & to file (so we don't post again), unless its the first run                                 
+            update_proposal_value("chain", current_prop_id)
+        else:
+            print("Not in production, not writing to file.")
+
+        post_tweet(
+            ID=current_prop_id,
+            propID=current_prop_id, 
+            title=current_prop_title,
+            location="chain"
+        )
 
 
 def updateChainsToNewestProposalsIfThisIsTheFirstTimeRunning():
@@ -225,19 +229,19 @@ def runChecks():
 
 if __name__ == "__main__":
     # Load twitter secrets from the filename
-    # twitSecrets = json.load(open("secrets.json", 'r'))
+    twitSecrets = json.load(open("secrets.json", 'r'))
 
     # Get the values needed for access to the twitter account.
     # Need to add support for ENV Variables here.
     # Add an easy way to get these as ENV variables? (f"{var=}.split("=")" < would get the var name, then we get this from os.env)
-    # API_KEY = twitSecrets['API_KEY']
-    # API_KEY_SECRET = twitSecrets['API_KEY_SECRET']
-    # ACCESS_TOKEN = twitSecrets['ACCESS_TOKEN']
-    # ACCESS_TOKEN_SECRET = twitSecrets['ACCESS_TOKEN_SECRET']  
+    API_KEY = twitSecrets['API_KEY']
+    API_KEY_SECRET = twitSecrets['API_KEY_SECRET']
+    ACCESS_TOKEN = twitSecrets['ACCESS_TOKEN']
+    ACCESS_TOKEN_SECRET = twitSecrets['ACCESS_TOKEN_SECRET']  
 
     # # Authenticate to Twitter & Get API
-    # auth = tweepy.OAuth1UserHandler(API_KEY, API_KEY_SECRET)
-    # auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-    # api = tweepy.API(auth, wait_on_rate_limit=True)
+    auth = tweepy.OAuth1UserHandler(API_KEY, API_KEY_SECRET)
+    auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+    api = tweepy.API(auth, wait_on_rate_limit=True)
 
     run(ignorePinned=False)
