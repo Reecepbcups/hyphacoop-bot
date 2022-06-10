@@ -11,4 +11,21 @@ Make a class for it so these can be called via an object.
 
 
 
-### Setup
+## Setup
+
+---
+## Env Variables
+### Twitter
+```sh
+API_KEY=
+API_KEY_SECRET=
+ACCESS_TOKEN=
+ACCESS_TOKEN_SECRET=
+```
+### Production
+```sh
+IN_PRODUCTION=True
+
+# required for docker
+USE_PYTHON_RUNNABLE=True 
+```
