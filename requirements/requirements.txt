@@ -1,0 +1,8 @@
+## INSTALL
+# pip install -r requirements.txt
+
+## UPDATE DEENDS
+# pip install pipreqs && pipreqs .
+requests==2.27.1
+schedule==1.1.0
+tweepy==4.5.0

@@ -8,3 +8,7 @@ TODO:
 Only have the COSMOS HUB chain values (REST endpoint & Forum API)
 
 Make a class for it so these can be called via an object.
+
+
+
+### Setup
