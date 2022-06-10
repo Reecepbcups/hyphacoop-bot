@@ -33,7 +33,7 @@ def main():
         while True:
             checkForNewOnChainProposals()
             runForumCheck(ignorePinned=False)
-            time.sleep(RUNNABLE_MINUTES)
+            time.sleep(RUNNABLE_MINUTES * 60)
 
 
     print("One time run")

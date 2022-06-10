@@ -9,7 +9,15 @@ Only have the COSMOS HUB chain values (REST endpoint & Forum API)
 
 Make a class for it so these can be called via an object.
 
+## Compile with docker
+```bash
+sudo docker login
 
+VERSION="1.0.1"
+sudo docker build -t reecepbcups/hyphacoop_bot:$VERSION .
+# sudo docker run -it reecepbcups/hyphacoop_bot:$VERSION
+sudo docker push reecepbcups/hyphacoop_bot:$VERSION
+```
 
 ## Setup
 
