@@ -9,38 +9,32 @@ Sections taken from
 - https://github.com/Reecepbcups/cosmos-governance-bot
 '''
 
+import os
 import json
 import requests
 import schedule
 import time
 import tweepy
 
-import os
-from os.path import dirname as parentDir
-
 from utils import unecode_text, getForumTopicList, getForumUserMap
-
-
-
-GOVERNANCE_PROPOSALS_API = 'https://lcd-cosmoshub.blockapsis.com/cosmos/gov/v1beta1/proposals'
-# GOVERNANCE_PROPOSALS_API = 'https://lcd-juno.itastakers.com/cosmos/gov/v1beta1/proposals' # test juno chain
-EXPLORER = "https://www.mintscan.io/cosmos/proposals"
-FORUM_URL = "https://forum.cosmos.network/t/{ID}"
-FORUM_API = "https://forum.cosmos.network/c/hub-proposals/25.json" # governance section = 25
+from utils import GOVERNANCE_PROPOSALS_API, EXPLORER, FORUM_URL, FORUM_API, SECRETS_FILE, FILENAME
 
 
 ############################################################################################
-SECRETS_FILE = parentDir(parentDir(__file__)) + "/secrets.json"
-FILENAME = parentDir(parentDir(__file__)) + "/storage.json"
-# print(SECRETS_FILE, '\n', FILENAME)
 
-def main():
+def main():   
+    load_proposals_from_file()         
+
+    USE_RUNNABLE_FOR_DOCKER = bool(getValue("USE_RUNNABLE_FOR_DOCKER", config))
+    RUNNABLE_MINUTES = int(getValue("RUNNABLE_MINUTES", config))   
+
     if USE_RUNNABLE_FOR_DOCKER:
         print("Using a runnable so docker will stay alive")
         while True:
             checkForNewOnChainProposals()
             runForumCheck(ignorePinned=False)
-            time.sleep(60)
+            time.sleep(RUNNABLE_MINUTES)
+
 
     print("One time run")
     checkForNewOnChainProposals()
@@ -108,6 +102,7 @@ def runForumCheck(ignorePinned : bool = True, onlyPrintLastCall : bool = True):
             title=title,
             location="forum"
         )
+    print("Checked for new new forum proposals")
 
 
 #####################################POST TWEET#############################################
@@ -176,6 +171,7 @@ def checkForNewOnChainProposals() -> None:
             title=current_prop_title,
             location="chain"
         )
+    print("Checked for new on-chain proposals")
     
 ############################################################################################
 
@@ -192,17 +188,10 @@ if __name__ == "__main__":
     ACCESS_TOKEN = getValue("ACCESS_TOKEN", config)
     ACCESS_TOKEN_SECRET = getValue("ACCESS_TOKEN_SECRET", config)
 
-    print(f"API_KEY: {API_KEY}, API_KEY_SECRET: {API_KEY_SECRET}, ACCESS_TOKEN: {ACCESS_TOKEN}, ACCESS_TOKEN_SECRET: {ACCESS_TOKEN_SECRET}")
-
     # # Authenticate to Twitter & Get API
     auth = tweepy.OAuth1UserHandler(API_KEY, API_KEY_SECRET)
     auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-    api = tweepy.API(auth, wait_on_rate_limit=True)
+    api = tweepy.API(auth, wait_on_rate_limit=True) 
 
-    load_proposals_from_file()
-
-    # Don't actually tweet, just print
     IN_PRODUCTION = bool(getValue("IN_PRODUCTION", config))
-    USE_RUNNABLE_FOR_DOCKER = bool(getValue("USE_RUNNABLE_FOR_DOCKER", config))
-
     main()

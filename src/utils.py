@@ -1,6 +1,13 @@
-import urllib.parse
+from os.path import dirname as parentDir
+GOVERNANCE_PROPOSALS_API = 'https://lcd-cosmoshub.blockapsis.com/cosmos/gov/v1beta1/proposals'
+EXPLORER = "https://www.mintscan.io/cosmos/proposals"
+FORUM_URL = "https://forum.cosmos.network/t/{ID}"
+FORUM_API = "https://forum.cosmos.network/c/hub-proposals/25.json" # governance section = 25
+SECRETS_FILE = parentDir(parentDir(__file__)) + "/secrets.json"
+FILENAME = parentDir(parentDir(__file__)) + "/storage.json"
 
 # misc
+import urllib.parse
 def unecode_text(msg):
     return urllib.parse.unquote(msg)
 
