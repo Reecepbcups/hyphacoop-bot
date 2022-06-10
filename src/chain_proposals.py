@@ -88,7 +88,7 @@ def run(ignorePinned : bool = True, onlyPrintLastCall : bool = True):
         _id = prop['id']
         if ignorePinned and prop['pinned'] == True: continue
 
-        if _id <= proposals["forum"]: # print(_id, chainID, "Already did this")
+        if _id <= int(proposals.get("forum")): # print(_id, chainID, "Already did this")
             continue
 
         tags = list(prop['tags'])
@@ -113,7 +113,7 @@ def run(ignorePinned : bool = True, onlyPrintLastCall : bool = True):
                 if len(name) > 0:
                     originalPoster += f" ({name})"
             
-        proposals["forum"] = _id
+        update_proposal_value("forum", _id)
         print(_id, createTime, title, originalPoster, tags)
         
         post_tweet(
