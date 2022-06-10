@@ -9,15 +9,13 @@ Sections taken from
 - https://github.com/Reecepbcups/cosmos-governance-bot
 '''
 
-import datetime
 import json
-import os
-from re import L
 import requests
 import schedule
 import time
 import tweepy
 
+import os
 from os.path import dirname as parentDir
 
 from utils import unecode_text, getForumTopicList, getForumUserMap
@@ -179,17 +177,20 @@ def runChainCheck():
     
 ############################################################################################
 
+def getValue(key, config):
+    return os.getenv(key, config[key])
+
 if __name__ == "__main__":
     # Load twitter secrets from the filename
-    twitSecrets = json.load(open("secrets.json", 'r'))
+    config = json.load(open("secrets.json", 'r'))
 
     # Get the values needed for access to the twitter account.
-    # Need to add support for ENV Variables here.
-    # Add an easy way to get these as ENV variables? (f"{var=}.split("=")" < would get the var name, then we get this from os.env)
-    API_KEY = twitSecrets['API_KEY']
-    API_KEY_SECRET = twitSecrets['API_KEY_SECRET']
-    ACCESS_TOKEN = twitSecrets['ACCESS_TOKEN']
-    ACCESS_TOKEN_SECRET = twitSecrets['ACCESS_TOKEN_SECRET']  
+    API_KEY = getValue("API_KEY", config)
+    API_KEY_SECRET = getValue("API_KEY_SECRET", config)
+    ACCESS_TOKEN = getValue("ACCESS_TOKEN", config)
+    ACCESS_TOKEN_SECRET = getValue("ACCESS_TOKEN_SECRET", config)
+
+    print(f"API_KEY: {API_KEY}, API_KEY_SECRET: {API_KEY_SECRET}, ACCESS_TOKEN: {ACCESS_TOKEN}, ACCESS_TOKEN_SECRET: {ACCESS_TOKEN_SECRET}")
 
     # # Authenticate to Twitter & Get API
     auth = tweepy.OAuth1UserHandler(API_KEY, API_KEY_SECRET)
@@ -199,6 +200,6 @@ if __name__ == "__main__":
     load_proposals_from_file()
 
     # runForum(ignorePinned=False) # runs forum
-    runChainCheck() # runs chain check for proposals
+    # runChainCheck() # runs chain check for proposals
 
     # add logic here for scheduler or not.
