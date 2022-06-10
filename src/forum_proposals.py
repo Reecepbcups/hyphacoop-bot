@@ -1,1 +1,0 @@
-# add logic for how forum proposals are handled

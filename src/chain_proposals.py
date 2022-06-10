@@ -26,8 +26,8 @@ USE_PYTHON_RUNNABLE = False # only run 1 time, turn this on for docker
 
 GOVERNANCE_PROPOSALS_API = 'https://lcd-cosmoshub.blockapsis.com/cosmos/gov/v1beta1/proposals'
 EXPLORER = "https://www.mintscan.io/cosmos/proposals"
-FORUM_URL = "https://forum.cosmos.network"
-
+FORUM_URL = "https://forum.cosmos.network/t/{ID}"
+FORUM_API = "https://forum.cosmos.network/c/hub-proposals/25.json" # governance section = 25
 
 
 # ----
@@ -56,6 +56,78 @@ def update_proposal_value(location: Enum, newPropNumber):
     global proposals
     proposals[location] = newPropNumber
     save_proposals()
+
+############################################################################################
+import urllib.parse
+
+def unecode_text(msg):
+    return urllib.parse.unquote(msg)
+
+def getTopicList(url, key="topic_list") -> dict:
+    response = requests.get(url)
+    data = response.json()
+    if key in data:
+        data = data[key]
+    return data
+
+def getCosmosUserMap(url) -> dict:
+    '''
+    Get a dict of userID to userName for cosmos hub proposals.
+    '''
+    tempUsers = getTopicList(url, key="users") # reuse this requests code
+    users = {}
+    for u in tempUsers:
+        username = u['username']
+        userID = u['id'] 
+        name = u['name'] # can be ""
+        trust_level = u['trust_level'] # higher is better (4 is admin, 1 is user)
+        
+        users[userID] = {"username": username, "name": name, "trust_level": trust_level}
+    return users
+
+def run(ignorePinned : bool = True, onlyPrintLastCall : bool = True):
+    threads = getTopicList(FORUM_API, key="topic_list")['topics']
+
+    for prop in sorted(threads, key=lambda k: k['id'], reverse=False):
+        _id = prop['id']
+        if ignorePinned and prop['pinned'] == True: continue
+
+        if _id <= proposals[Location.FORUM.value]:
+            # print(_id, chainID, "Already did this")
+            continue
+
+
+        tags = list(prop['tags'])
+        if onlyPrintLastCall and 'last-call' not in tags:
+            continue # we skip if it isn't a last call
+    
+        title = unecode_text(prop['title'])
+        createTime = prop['created_at']
+        originalPoster = ""
+    
+        for poster in prop['posters']:
+            desc = str(poster['description'])
+            if 'original' in desc.lower():
+                user = getCosmosUserMap(FORUM_API)[poster['user_id'] ]
+                username = user["username"]
+                # trustLevel = user["trust_level"]
+                originalPoster = f"https://forum.cosmos.network/u/{username}"
+                # adds their name to the end if they set it.
+                name = user["name"]
+                if len(name) > 0:
+                    originalPoster += f" ({name})"
+            
+        proposals[Location.FORUM.value] = _id
+        print(_id, createTime, title, originalPoster, tags)
+        # send announcement here
+
+
+############################################################################################
+
+
+
+
+
 
 
 def post_update(propID, title, description=""):
@@ -144,26 +216,28 @@ def updateChainsToNewestProposalsIfThisIsTheFirstTimeRunning():
 def runChecks():   
     print("Running check...") 
     try:
-        checkIfNewestProposalIDIsGreaterThanLastTweet(chain)
+        checkIfNewestProposalIDIsGreaterThanLastTweet()
     except Exception as e:
-        print(f"{chain} checkProp failed: {e}")
+        print(f"{e}")
 
     print(f"All chains checked {time.ctime()}, waiting")
 
 
 if __name__ == "__main__":
     # Load twitter secrets from the filename
-    twitSecrets = json.load(open("secrets.json", 'r'))
+    # twitSecrets = json.load(open("secrets.json", 'r'))
 
     # Get the values needed for access to the twitter account.
     # Need to add support for ENV Variables here.
     # Add an easy way to get these as ENV variables? (f"{var=}.split("=")" < would get the var name, then we get this from os.env)
-    API_KEY = twitSecrets['API_KEY']
-    API_KEY_SECRET = twitSecrets['API_KEY_SECRET']
-    ACCESS_TOKEN = twitSecrets['ACCESS_TOKEN']
-    ACCESS_TOKEN_SECRET = twitSecrets['ACCESS_TOKEN_SECRET']  
+    # API_KEY = twitSecrets['API_KEY']
+    # API_KEY_SECRET = twitSecrets['API_KEY_SECRET']
+    # ACCESS_TOKEN = twitSecrets['ACCESS_TOKEN']
+    # ACCESS_TOKEN_SECRET = twitSecrets['ACCESS_TOKEN_SECRET']  
 
-    # Authenticate to Twitter & Get API
-    auth = tweepy.OAuth1UserHandler(API_KEY, API_KEY_SECRET)
-    auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-    api = tweepy.API(auth, wait_on_rate_limit=True)  
+    # # Authenticate to Twitter & Get API
+    # auth = tweepy.OAuth1UserHandler(API_KEY, API_KEY_SECRET)
+    # auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+    # api = tweepy.API(auth, wait_on_rate_limit=True)
+
+    run(ignorePinned=False)
