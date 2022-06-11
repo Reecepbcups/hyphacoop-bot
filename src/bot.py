@@ -112,7 +112,7 @@ def runForumCheck(ignorePinned : bool = True, onlyPrintLastCall : bool = True):
 def post_tweet(ID: int, title: str, location : str ="chain", **kwargs) -> None:
     if location == "chain":
         # ID here is the actual proposal ID (ex #71)
-        message = f"Cosmos Proposal #{ID} | VOTE NOW | {title} | {EXPLORER}/{ID} | @cosmos"
+        message = f"Cosmos Proposal #{ID} | VOTE NOW | '{title}' | {EXPLORER}/{ID} | @cosmos"
     else:
         # ID here is the forum ID, > 6700
         message = f"Cosmos Draft | '{title}' | {FORUM_URL.format(ID=ID)} | By: {kwargs.get('originalPoster')} | @cosmos"
