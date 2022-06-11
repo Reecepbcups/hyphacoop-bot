@@ -32,10 +32,12 @@ def main():
 
     if USE_RUNNABLE_FOR_DOCKER:
         print("Using a runnable so docker will stay alive")
+        secondsWait = RUNNABLE_MINUTES * 60
         while True:
             checkForNewOnChainProposals()
             runForumCheck(ignorePinned=False)
-            time.sleep(RUNNABLE_MINUTES * 60)
+            print(time.strftime("%H:%M:%S"), f"Waiting for {RUNNABLE_MINUTES} minutes until next run.")
+            time.sleep(secondsWait)
 
 
     print("One time run")
@@ -77,8 +79,6 @@ def runForumCheck(ignorePinned : bool = True, onlyPrintLastCall : bool = True):
         title = unecode_text(prop['title'])
         createTime = prop['created_at']
         originalPoster = ""
-
-        # Add regex profanity check?
     
         for poster in prop['posters']:
             desc = str(poster['description'])
@@ -102,26 +102,29 @@ def runForumCheck(ignorePinned : bool = True, onlyPrintLastCall : bool = True):
         post_tweet(
             ID=_id,
             title=title,
-            location="forum"
+            location="forum",
+            originalPoster=originalPoster
         )
     print("Checked for new new forum proposals")
 
 
 #####################################POST TWEET#############################################
-def post_tweet(ID: int, title: str, location : str ="chain") -> None:
+def post_tweet(ID: int, title: str, location : str ="chain", **kwargs) -> None:
     if location == "chain":
         # ID here is the actual proposal ID (ex #71)
         message = f"Cosmos Proposal #{ID} | VOTE NOW | {title} | {EXPLORER}/{ID} | @cosmos"
     else:
         # ID here is the forum ID, > 6700
-        message = f"Cosmos Forum Proposal (last-call) | {title} | {FORUM_URL.format(ID=ID)} | @cosmos"
+        message = f"Cosmos Forum Draft Proposal | '{title}' | LAST-CALL | {FORUM_URL.format(ID=ID)} | Drafted By: {kwargs.get('originalPoster')} | @cosmos"
+
+    print(f"{message=}")
 
     if IN_PRODUCTION:
         try:
             tweet = api.update_status(message)
             print(f"Tweet sent for {tweet.id}: {message}")
         except Exception as err:
-            print("Tweet failed " + str(err)) 
+            print("\n[!] Tweet failed: " + str(err)) 
     else:
         # print(f"WOULD TWEET: {message}   - {IN_PRODUCTION=}")
         pass

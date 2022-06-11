@@ -3,15 +3,15 @@ version: "2.0"
 
 services:
   pybot:
-    image: reecepbcups/hyphacoop_bot:1.0.1
+    image: reecepbcups/hyphacoop_bot:1.0.2
     env:
+      - "IN_PRODUCTION=true"
+      - "USE_PYTHON_RUNNABLE=true"
+      - "RUNNABLE_MINUTES=60"
       - "API_KEY="
       - "API_KEY_SECRET="
       - "ACCESS_TOKEN="
       - "ACCESS_TOKEN_SECRET="
-      - "IN_PRODUCTION=true"
-      - "USE_PYTHON_RUNNABLE=true"
-      - "RUNNABLE_MINUTES=60"
     expose:
       - port: 8080 # just a placeholder
         to:
