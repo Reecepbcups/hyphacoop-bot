@@ -12,9 +12,11 @@ Sections taken from
 import os
 import json
 import requests
-import schedule
+import schedule # not sure if required for akash
 import time
 import tweepy
+
+from dotenv import dotenv_values
 
 from utils import unecode_text, getForumTopicList, getForumUserMap
 from utils import GOVERNANCE_PROPOSALS_API, EXPLORER, FORUM_URL, FORUM_API, SECRETS_FILE, FILENAME
@@ -25,8 +27,8 @@ from utils import GOVERNANCE_PROPOSALS_API, EXPLORER, FORUM_URL, FORUM_API, SECR
 def main():   
     load_proposals_from_file()         
 
-    USE_RUNNABLE_FOR_DOCKER = bool(getValue("USE_RUNNABLE_FOR_DOCKER", config))
-    RUNNABLE_MINUTES = int(getValue("RUNNABLE_MINUTES", config))   
+    USE_RUNNABLE_FOR_DOCKER = bool(config["USE_RUNNABLE_FOR_DOCKER"])
+    RUNNABLE_MINUTES = int(config["RUNNABLE_MINUTES"])   
 
     if USE_RUNNABLE_FOR_DOCKER:
         print("Using a runnable so docker will stay alive")
@@ -175,23 +177,22 @@ def checkForNewOnChainProposals() -> None:
     
 ############################################################################################
 
-def getValue(key, config):
-    return os.getenv(key, config[key])
 
 if __name__ == "__main__":
-    # Load twitter secrets from the filename
-    config = json.load(open("secrets.json", 'r'))
+    # Load twitter secrets from the env vfile
+    config = dotenv_values(".env")
 
     # Get the values needed for access to the twitter account.
-    API_KEY = getValue("API_KEY", config)
-    API_KEY_SECRET = getValue("API_KEY_SECRET", config)
-    ACCESS_TOKEN = getValue("ACCESS_TOKEN", config)
-    ACCESS_TOKEN_SECRET = getValue("ACCESS_TOKEN_SECRET", config)
+    API_KEY = config["API_KEY"]
+    API_KEY_SECRET = config["API_KEY_SECRET"]
+    ACCESS_TOKEN = config["ACCESS_TOKEN"]
+    ACCESS_TOKEN_SECRET = config["ACCESS_TOKEN_SECRET"]
 
     # # Authenticate to Twitter & Get API
     auth = tweepy.OAuth1UserHandler(API_KEY, API_KEY_SECRET)
     auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
     api = tweepy.API(auth, wait_on_rate_limit=True) 
 
-    IN_PRODUCTION = bool(getValue("IN_PRODUCTION", config))
+    IN_PRODUCTION = bool(config["IN_PRODUCTION"])
+
     main()
