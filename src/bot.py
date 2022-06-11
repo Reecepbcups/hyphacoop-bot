@@ -115,7 +115,7 @@ def post_tweet(ID: int, title: str, location : str ="chain", **kwargs) -> None:
         message = f"Cosmos Proposal #{ID} | VOTE NOW | {title} | {EXPLORER}/{ID} | @cosmos"
     else:
         # ID here is the forum ID, > 6700
-        message = f"Cosmos Forum Draft Proposal | '{title}' | LAST-CALL | {FORUM_URL.format(ID=ID)} | Drafted By: {kwargs.get('originalPoster')} | @cosmos"
+        message = f"Cosmos Draft | '{title}' | {FORUM_URL.format(ID=ID)} | By: {kwargs.get('originalPoster')} | @cosmos"
 
     print(f"{message=}")
 
